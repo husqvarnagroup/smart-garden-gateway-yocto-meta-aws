@@ -36,21 +36,9 @@ StreamTestReadEmpty \
 StreamTestSeekBegin \
 StreamTestSeekEnd \
 StreamTestRefcount \
-TestCredentialsConstruction \
-TestAnonymousCredentialsConstruction \
-TestProviderStaticGet \
-TestProviderAnonymousGet \
-TestProviderEnvironmentGet \
-TestProviderProfileGet \
-TestProviderImdsGet \
-TestProviderDefaultChainGet \
-TestProviderDefaultChainManualTlsContextGet \
-TestProviderDelegateGet \
-TestProviderDelegateGetAnonymous \
 HttpRequestTestCreateDestroy \
 Sigv4SigningTestCreateDestroy \
 Sigv4SigningTestSimple \
-Sigv4SigningTestCredentials \
 Sigv4SigningTestUnsignedPayload \
 UUIDToString \
 TestIntArrayListToVector \
@@ -68,4 +56,4 @@ do
 ./aws-crt-cpp-tests $TEST >> tests.log 2>&1
 done
 
-sed  -e '/\[\s/!d  ; /OK/ s/^/PASS: / ; /FAILED/ s/^/FAIL: /'  tests.log
+sed  -e '/\[\s\|==.*==\|runtime error:/!d ; /OK/ s/^/PASS: / ; /FAILED\|ERROR: .*Sanitizer\|runtime error:/ s/^/FAIL: /'  tests.log

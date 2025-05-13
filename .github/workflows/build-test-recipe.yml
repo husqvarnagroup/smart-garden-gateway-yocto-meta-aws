@@ -1,8 +1,6 @@
 name: build-test-recipe
 on:
   workflow_dispatch:
-  schedule:
-    - cron: '0 0 * * *'
   pull_request:
 jobs:
   changed:
@@ -17,25 +15,46 @@ jobs:
     - name: Diff files and set variables
       id: diff
       run: |
-        # See https://github.community/t/check-pushed-file-changes-with-git-diff-tree-in-github-actions/17220/10
         if [ $GITHUB_BASE_REF ]; then
           # Pull Request
-          # 'github.event.before/after' and 'github.event.pull_request.base.sha' are inconsistent for PRs
-          # Find the commit where the PR branch was forked from the base branch
-          git fetch origin ${{ github.base_ref }} ${{ github.event.pull_request.head.ref }}
-          FORK_POINT=$( git show-branch --merge-base "origin/${{ github.base_ref }}" "origin/${{ github.event.pull_request.head.ref }}" )
+          # Fetch the base ref
+          git fetch origin ${{ github.base_ref }}:${{ github.base_ref }}
+
+          # For forks, we need to fetch from the head repository
+          if [ "${{ github.event.pull_request.head.repo.full_name }}" != "${{ github.repository }}" ]; then
+            git remote add fork ${{ github.event.pull_request.head.repo.clone_url }}
+            git fetch fork ${{ github.head_ref }}
+          else
+            git fetch origin ${{ github.head_ref }}:${{ github.head_ref }}
+          fi
+
+          # Determine the merge base
+          FORK_POINT=$(git merge-base ${{ github.base_ref }} ${{ github.event.pull_request.head.sha }})
           LATEST_COMMIT_IN_PR=${{ github.event.pull_request.head.sha }}
-          export DIFF=$( git diff --name-only $FORK_POINT $LATEST_COMMIT_IN_PR )
+
+          # Get the diff
+          DIFF=$(git diff --name-only $FORK_POINT $LATEST_COMMIT_IN_PR)
           echo "Diff between $FORK_POINT and $LATEST_COMMIT_IN_PR"
+        else
+          # Push to a branch
+          BEFORE_SHA=${{ github.event.before }}
+          AFTER_SHA=${{ github.event.after }}
+          DIFF=$(git diff --name-only $BEFORE_SHA $AFTER_SHA)
+          echo "Diff between $BEFORE_SHA and $AFTER_SHA"
         fi
+
         echo "$DIFF"
         echo "diff=$( echo "$DIFF" | tr '\n' ' ' )" >> $GITHUB_OUTPUT
-    - name: get yocto release name
+    - name: Get Yocto release name
       id: get-yocto-release-name
       run: |
-          export RELEASE=$(echo ${{github.event.pull_request.base.ref}} | cut -d- -f1)
-          echo "$RELEASE"
-          echo "release=${RELEASE:-master}" >> $GITHUB_OUTPUT
+        if [[ "${{ github.event_name }}" == "pull_request" ]]; then
+          RELEASE=$(echo "${{ github.event.pull_request.base.ref }}" | cut -d- -f1)
+        else
+          RELEASE=$(echo "${{ github.ref_name }}" | cut -d- -f1)
+        fi
+        echo "Determined release: $RELEASE"
+        echo "release=${RELEASE}" >> $GITHUB_OUTPUT
   build-test:
     name: Build, Test ${{ matrix.machine }} ${{ needs.changed.outputs.release }}
     needs: changed
@@ -46,7 +65,7 @@ jobs:
           - qemuarm
           - qemuarm64
           - qemux86-64
-    runs-on: codebuild-${{ vars.CODEBUILD_RUNNER_NAME }}-${{ github.run_id }}-${{ github.run_attempt }}
+    runs-on: codebuild-${{ vars.CODEBUILD_RUNNER_NAME || 'meta-aws' }}-${{ github.run_id }}-${{ github.run_attempt }}
     steps:
       - name: Checkout meta-aws
         uses: actions/checkout@v4
@@ -72,7 +91,7 @@ jobs:
             echo "No changed recipes, adding everything with a ptest to test, build"
             THINGS_TO_EXCLUDE="! -name aws-lc* ! -name neo-ai-tv* ! -name corretto-17-bin* ! -name corretto-21-bin* ! -name corretto-8-bin* ! -name firecracker-bin* ! -name jailer-bin* ! -name amazon-kvs-producer-sdk-c* ! -name  aws-cli-v2* "
             if [ ${{ matrix.machine }} == "qemuarm" ]; then
-              THINGS_TO_EXCLUDE+="! -name amazon-kvs-webrtc-sdk* ! -name amazon-kvs-producer-pic*"
+              THINGS_TO_EXCLUDE+="! -name amazon-kvs-webrtc-sdk* ! -name amazon-kvs-producer-pic* ! -name amazon-cloudwatch-agent*"
             fi
             export RECIPES=$(find meta-aws/ -name *.bb -type f \( ${THINGS_TO_EXCLUDE} \) -print | xargs grep -l 'inherit.*ptest.*'| sed 's!.*/!!' | sed 's!.bb!!' | sed 's!_.*!!' | sort | uniq | sed -z $'s/\\\n/ /g')
             echo THINGS_TO_EXCLUDE: $THINGS_TO_EXCLUDE
@@ -92,16 +111,17 @@ jobs:
              cd  ${{ github.workspace }}
              source poky/oe-init-build-env build
              echo QEMU_USE_KVM = \"\" >> conf/local.conf
-             # set to the same as core-image-ptest
-             echo QB_MEM = \"-m 1024\" >> conf/local.conf
+             # set to max for arm32
+             echo QB_MEM = \"-m 3G\" >> conf/local.conf
              # use slirp networking instead of TAP interface (require root rights)
              echo QEMU_USE_SLIRP = \"1\" >> conf/local.conf
              echo TEST_RUNQEMUPARAMS += \"slirp\" >> conf/local.conf
              echo TEST_SERVER_IP = \"127.0.0.1\" >> conf/local.conf
              echo DISTRO_FEATURES += \"ptest\" >> conf/local.conf
+             echo DISTRO = \"poky-altcfg\" >> conf/local.conf
              # this will specify what test should run when running testimage cmd - oeqa layer tests + ptests:
              # Ping and SSH are not required, but do help in debugging. ptest will discover all ptest packages.
-             echo TEST_SUITES = \" ping ssh ptest\" >> conf/local.conf
+             echo TEST_SUITES = \" ping ssh ptest parselogs\" >> conf/local.conf
              # this will allow - running testimage cmd: bitbake core-image-minimal -c testimage
              echo IMAGE_CLASSES += \"testimage\" >> conf/local.conf
              cat conf/local.conf
@@ -115,10 +135,17 @@ jobs:
              export MACHINE=${{ matrix.machine }}
              export BB_ENV_PASSTHROUGH_ADDITIONS="$BB_ENV_PASSTHROUGH_ADDITIONS SSTATE_DIR DL_DIR"
              bitbake $RECIPES -f -k | tee -a $MACHINE-build.log'
-            set -e
-            echo RECIPES to build: $RECIPES
-            test -e build/${{ matrix.machine }}-build.log && ! grep -A3 " failed"  build/${{ matrix.machine }}-build.log
-            test -e build/${{ matrix.machine }}-build.log && ! grep -A3 " ERROR:"  build/${{ matrix.machine }}-build.log
+           set -e
+           echo RECIPES to build: $RECIPES
+           if [ -e "build/${{ matrix.machine }}-build.log" ]; then
+            if grep -A3 -E ' failed| ERROR:' "build/${{ matrix.machine }}-build.log"; then
+              echo "Found failed or ERROR in build log"
+              exit 1
+            fi
+           else
+            echo "Build log file not found: build/${{ matrix.machine }}-build.log"
+            exit 1
+           fi
       - name: Save ${{ matrix.machine }}-build.log
         if: '!cancelled()'
         uses: actions/upload-artifact@v4

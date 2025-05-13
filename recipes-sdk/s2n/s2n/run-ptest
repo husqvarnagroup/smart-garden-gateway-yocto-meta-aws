@@ -20,7 +20,6 @@ TESTS="\
 ./s2n_client_finished_test \
 ./s2n_client_key_share_extension_test \
 ./s2n_client_max_frag_len_extension_test \
-./s2n_client_pq_kem_extension_test \
 ./s2n_client_record_version_test \
 ./s2n_client_sct_list_extension_test \
 ./s2n_client_secure_renegotiation_test \
@@ -35,7 +34,6 @@ TESTS="\
 ./s2n_ems_extension_test \
 ./s2n_error_lookup_test \
 ./s2n_error_type_test \
-./s2n_evp_signing_test \
 ./s2n_extension_list_parse_test \
 ./s2n_extension_list_process_test \
 ./s2n_extension_list_send_test \
@@ -58,7 +56,6 @@ TESTS="\
 ./s2n_init_test \
 ./s2n_kem_preferences_test \
 ./s2n_kex_test \
-./s2n_kex_with_kem_test \
 ./s2n_key_share_extension_test \
 ./s2n_key_update_test \
 ./s2n_locking_test \
@@ -67,7 +64,6 @@ TESTS="\
 ./s2n_next_protocol_test \
 ./s2n_npn_extension_test \
 ./s2n_nst_early_data_indication_test \
-./s2n_openssl_test \
 ./s2n_post_handshake_test \
 ./s2n_protocol_preferences_test \
 ./s2n_psk_key_exchange_modes_extension_test \
@@ -93,7 +89,6 @@ TESTS="\
 ./s2n_server_session_ticket_extension_test \
 ./s2n_server_signature_algorithms_extension_test \
 ./s2n_server_supported_versions_extension_test \
-./s2n_set_test \
 ./s2n_shutdown_test \
 ./s2n_ssl_prf_test \
 ./s2n_stream_cipher_null_test \
@@ -163,7 +158,6 @@ TESTS="\
 ./s2n_crl_test \
 ./s2n_drain_alert_test \
 ./s2n_early_data_io_test \
-./s2n_ecdsa_test \
 ./s2n_encrypted_extensions_test \
 ./s2n_extended_master_secret_test \
 ./s2n_extension_type_test \

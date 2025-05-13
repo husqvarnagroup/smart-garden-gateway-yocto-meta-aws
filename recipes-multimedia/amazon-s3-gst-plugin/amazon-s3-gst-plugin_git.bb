@@ -14,7 +14,7 @@ DEPENDS = "\
 SRC_URI = "git://github.com/amzn/amazon-s3-gst-plugin.git;protocol=https;branch=master \
            file://run-ptest \
            "
-SRCREV = "b0887cf881b915a07e78b5e9ff87835b51c8e26c"
+SRCREV = "89c2ed54eb057a557bb26d4ef3332734794e23c2"
 
 # this project do not use version tags, use latest commit
 UPSTREAM_CHECK_COMMITS = "1"
@@ -23,6 +23,8 @@ S = "${WORKDIR}/git"
 
 CXXFLAGS:append = " -Wno-missing-field-initializers"
 
+EXTRA_OECMAKE:append = " -DCMAKE_BUILD_TYPE=RelWithDebInfo"
+
 inherit meson pkgconfig ptest
 
 FILES:${PN} += "\
@@ -30,3 +32,11 @@ FILES:${PN} += "\
     ${libdir}/libgstawscredentials-1.0.so \
 "
 FILES_SOLIBSDEV = ""
+
+PACKAGECONFIG:append:x86-64 = " ${@bb.utils.contains('PTEST_ENABLED', '1', 'sanitize', '', d)}"
+# -fsanitize=address does cause this
+# nooelint: oelint.vars.insaneskip:INSANE_SKIP
+# INSANE_SKIP += "${@bb.utils.contains('PACKAGECONFIG', 'sanitize', 'buildpaths', '', d)}"
+
+PACKAGECONFIG[sanitize] = ",, gcc-sanitizers"
+OECMAKE_CXX_FLAGS += "${@bb.utils.contains('PACKAGECONFIG', 'sanitize', '-fsanitize=address,undefined -fno-omit-frame-pointer', '', d)}"
