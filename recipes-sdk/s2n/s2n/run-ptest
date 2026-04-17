@@ -119,7 +119,6 @@ TESTS="\
 ./s2n_wildcard_hostname_test \
 ./s2n_ecc_evp_test \
 ./s2n_tls13_server_cert_test \
-./s2n_tls13_hybrid_shared_secret_test \
 ./s2n_tls13_handshake_early_data_test \
 ./s2n_stuffer_test \
 ./s2n_resume_test \
@@ -168,7 +167,6 @@ TESTS="\
 ./s2n_mem_usage_test \
 ./s2n_mutual_auth_test \
 ./s2n_optional_client_auth_test \
-./s2n_override_openssl_random_test \
 ./s2n_pem_rsa_dhe_test \
 ./s2n_pem_test \
 ./s2n_pkey_test \

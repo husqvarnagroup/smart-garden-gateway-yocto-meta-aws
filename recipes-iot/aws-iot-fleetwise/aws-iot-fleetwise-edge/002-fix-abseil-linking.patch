@@ -1,0 +1,41 @@
+From 165ac718eed6a8c3d03a8da0ce278bf87f4c9e71 Mon Sep 17 00:00:00 2001
+From: Thomas Roos <throos@amazon.de>
+Date: Mon, 9 Feb 2026 13:17:57 +0000
+Subject: [PATCH] aws-iot-fleetwise-edge: fix link of abseil lib
+
+Upstream-Status: Pending
+---
+ CMakeLists.txt | 6 ++++++
+ 1 file changed, 6 insertions(+)
+
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index c345306..ca2abe6 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -688,6 +688,8 @@ target_link_libraries(aws-iot-fleetwise-edge
+   fwe
+   fwe-proto
+   $<$<BOOL:${FWE_FEATURE_SOMEIP}>:fwe-someip-example>
++  absl_log_internal_check_op
++  absl_log_internal_message
+   $<$<BOOL:${FWE_FEATURE_SOMEIP}>:fwe-device-shadow-over-someip>
+ )
+ target_include_directories(aws-iot-fleetwise-edge PRIVATE
+@@ -727,6 +729,8 @@ if(${BUILD_TESTING})
+     $<$<BOOL:${FWE_FEATURE_SOMEIP}>:fwe-device-shadow-over-someip>
+     ${GMOCK_LIB}
+     GTest::GTest
++    absl_log_internal_check_op
++    absl_log_internal_message
+   )
+ 
+   set(TEST_BINARIES_PARALLEL ${TEST_BINARIES_PARALLEL} fwe-gtest)
+@@ -744,6 +748,8 @@ if(${BUILD_TESTING})
+     fwe
+     fwe-proto
+     benchmark::benchmark
++    absl_log_internal_check_op
++    absl_log_internal_message
+   )
+   add_test(
+     NAME fwe-benchmark
