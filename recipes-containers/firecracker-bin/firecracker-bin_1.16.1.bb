@@ -1,0 +1,49 @@
+SUMMARY = "firecracker - Binary Distribution"
+DESCRIPTION = "Secure and fast microVMs for serverless computing."
+HOMEPAGE = "https://firecracker-microvm.github.io/"
+CVE_PRODUCT = "firecracker"
+LICENSE = "Apache-2.0"
+# nooelint: oelint.var.licenseremotefile:License-File
+LIC_FILES_CHKSUM = "file://${S}/LICENSE;md5=3b83ef96387f14655fc854ddc3c6bd57"
+
+ARCH_DIR:x86-64 = "x86_64"
+ARCH_DIR:aarch64 = "aarch64"
+
+COMPATIBLE_MACHINE = "null"
+COMPATIBLE_MACHINE:aarch64 = "(.*)"
+COMPATIBLE_MACHINE:x86-64 = "(.*)"
+
+# nooelint: oelint.vars.srcurichecksum
+SRC_URI = "https://github.com/firecracker-microvm/firecracker/releases/download/v${PV}/firecracker-v${PV}-${ARCH_DIR}.tgz;name=${ARCH_DIR}"
+
+SRC_URI[x86_64.sha256sum] = "382a02a869e4d6d5cb14c40577f9545e8458021ea8b0b2d3fc10ec14d9c242e6"
+SRC_URI[aarch64.sha256sum] = "8d0e69f6d6f9a1724551f607f18504052c16c1828ee3d4d7b6e6c73380871e0e"
+
+UPSTREAM_CHECK_REGEX ?= "releases/tag/v?(?P<pver>\d+(\.\d+)+)"
+
+UPSTREAM_CHECK_URI = "https://github.com/firecracker-microvm/firecracker/releases"
+
+SRC_URI:append = " \
+    file://run-ptest \
+"
+
+S = "${WORKDIR}/release-v${PV}-${TARGET_ARCH}"
+
+inherit bin_package ptest
+
+# nooelint: oelint.vars.insaneskip
+INSANE_SKIP:${PN} += "already-stripped"
+
+
+FILES:${PN} += "\
+    ${bindir}/firecracker \
+"
+
+do_install() {
+    install -d ${D}${bindir}
+
+    install -m 0755 ${S}/firecracker-v${PV}-${TARGET_ARCH} ${D}${bindir}/firecracker
+}
+
+# https://bugzilla.yoctoproject.org/show_bug.cgi?id=15227
+PACKAGE_DEPENDS:append:class-target = " virtual/${TARGET_PREFIX}binutils"
