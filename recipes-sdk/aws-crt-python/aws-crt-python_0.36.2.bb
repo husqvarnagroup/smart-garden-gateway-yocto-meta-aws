@@ -37,7 +37,7 @@ SRC_URI = "\
     file://run-ptest \
     "
 
-SRCREV = "bf57332e2a38e8a8477ea1fe2f1c47e4f98e5875"
+SRCREV = "241be07f82ebd3031a812492443d545676cb2018"
 UPSTREAM_CHECK_GITTAGREGEX = "v(?P<pver>.*)"
 
 S = "${WORKDIR}/git"
@@ -120,6 +120,7 @@ RDEPENDS:${PN}-ptest += "\
     bash \
 "
 
+# nooelint: oelint.task.nocopy
 do_install_ptest() {
     install -d ${D}${PTEST_PATH}/tests
     cp -rf ${S}/test ${D}${PTEST_PATH}/tests/

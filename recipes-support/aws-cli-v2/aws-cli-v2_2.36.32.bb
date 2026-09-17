@@ -32,7 +32,7 @@ SRC_URI = "\
     file://run-ptest \
 "
 
-SRCREV = "49704b034263aab4228580f6b7280bf9faa1bf1c"
+SRCREV = "083d58b81eee8b96cf530815b314b4873b45ac98"
 
 S = "${WORKDIR}/git"
 
@@ -78,6 +78,7 @@ do_patch() {
     sed -i -E 's/(([a-zA-Z0-9_.-]+)(>=?[0-9.]+)?(,)?(<[0-9.]+\*|<=?[0-9.]+)?|([a-zA-Z0-9_.-]+)==[0-9.]+)/\2\3\6/' ${S}/pyproject.toml ${S}/requirements/bootstrap.txt
 }
 
+# nooelint: oelint.task.nocopy
 do_install_ptest() {
         install -d ${D}${PTEST_PATH}/tests
         # just install some tests with low memory (less than 4GB) consumption
